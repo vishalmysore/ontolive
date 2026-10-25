@@ -1,0 +1,61 @@
+@prefix : <https://vishalmysore.github.io/ontolive/samples/family#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# A small family-and-places ontology written for OntoLive. Released under the same licence as the project.
+
+: a owl:Ontology ;
+  rdfs:label "Family and Places" ;
+  rdfs:comment "People, the roles they play in a family, and where they live and work." .
+
+:Agent a owl:Class ; rdfs:comment "Anything that can act." .
+:Person a owl:Class ; rdfs:subClassOf :Agent .
+:Organisation a owl:Class ; rdfs:subClassOf :Agent .
+:Company a owl:Class ; rdfs:subClassOf :Organisation .
+:School a owl:Class ; rdfs:subClassOf :Organisation .
+:Hospital a owl:Class ; rdfs:subClassOf :Organisation .
+
+:Man a owl:Class ; rdfs:subClassOf :Person .
+:Woman a owl:Class ; rdfs:subClassOf :Person ; owl:disjointWith :Man .
+
+:Parent a owl:Class ;
+  owl:equivalentClass [ a owl:Class ; owl:intersectionOf ( :Person [ a owl:Restriction ; owl:onProperty :hasChild ; owl:someValuesFrom :Person ] ) ] .
+:Mother a owl:Class ;
+  owl:equivalentClass [ a owl:Class ; owl:intersectionOf ( :Woman [ a owl:Restriction ; owl:onProperty :hasChild ; owl:someValuesFrom :Person ] ) ] ;
+  rdfs:subClassOf :Parent .
+:Father a owl:Class ;
+  owl:equivalentClass [ a owl:Class ; owl:intersectionOf ( :Man [ a owl:Restriction ; owl:onProperty :hasChild ; owl:someValuesFrom :Person ] ) ] ;
+  rdfs:subClassOf :Parent .
+:Grandparent a owl:Class ; rdfs:subClassOf :Parent ;
+  rdfs:subClassOf [ a owl:Restriction ; owl:onProperty :hasChild ; owl:someValuesFrom :Parent ] .
+:Child a owl:Class ; rdfs:subClassOf :Person ;
+  rdfs:subClassOf [ a owl:Restriction ; owl:onProperty :hasParent ; owl:minCardinality "1"^^xsd:nonNegativeInteger ] .
+:Student a owl:Class ; rdfs:subClassOf :Person ;
+  rdfs:subClassOf [ a owl:Restriction ; owl:onProperty :attends ; owl:someValuesFrom :School ] .
+:Employee a owl:Class ; rdfs:subClassOf :Person ;
+  rdfs:subClassOf [ a owl:Restriction ; owl:onProperty :worksFor ; owl:someValuesFrom :Organisation ] .
+:Doctor a owl:Class ; rdfs:subClassOf :Employee ;
+  rdfs:subClassOf [ a owl:Restriction ; owl:onProperty :worksFor ; owl:someValuesFrom :Hospital ] .
+:Teacher a owl:Class ; rdfs:subClassOf :Employee ;
+  rdfs:subClassOf [ a owl:Restriction ; owl:onProperty :worksFor ; owl:someValuesFrom :School ] .
+
+:Place a owl:Class .
+:City a owl:Class ; rdfs:subClassOf :Place .
+:Country a owl:Class ; rdfs:subClassOf :Place ; owl:disjointWith :City .
+:Home a owl:Class ; rdfs:subClassOf :Place .
+
+:hasChild a owl:ObjectProperty ; rdfs:domain :Person ; rdfs:range :Person ; owl:inverseOf :hasParent .
+:hasParent a owl:ObjectProperty ; rdfs:domain :Person ; rdfs:range :Person .
+:hasSpouse a owl:ObjectProperty, owl:SymmetricProperty ; rdfs:domain :Person ; rdfs:range :Person .
+:livesIn a owl:ObjectProperty ; rdfs:domain :Person ; rdfs:range :Home .
+:worksFor a owl:ObjectProperty ; rdfs:domain :Employee ; rdfs:range :Organisation .
+:attends a owl:ObjectProperty ; rdfs:domain :Student ; rdfs:range :School .
+:locatedIn a owl:ObjectProperty, owl:TransitiveProperty ; rdfs:domain :Place ; rdfs:range :Place .
+:basedIn a owl:ObjectProperty ; rdfs:domain :Organisation ; rdfs:range :City .
+
+:name a owl:DatatypeProperty ; rdfs:domain :Agent ; rdfs:range xsd:string .
+:birthDate a owl:DatatypeProperty, owl:FunctionalProperty ; rdfs:domain :Person ; rdfs:range xsd:date .
+:employeeId a owl:DatatypeProperty ; rdfs:domain :Employee ; rdfs:range xsd:string .
+:population a owl:DatatypeProperty ; rdfs:domain :City ; rdfs:range xsd:integer .

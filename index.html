@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OntoLive</title>
+    <meta name="description" content="An OWL and Turtle ontology viewer that runs in a browser tab. Drawn live with Pele; nothing to install." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='7' r='4' fill='%23f2a541'/%3E%3Ccircle cx='7' cy='24' r='4' fill='%233fb394'/%3E%3Ccircle cx='25' cy='24' r='4' fill='%233fb394'/%3E%3Cpath d='M16 11v5M16 16L8 21M16 16l8 5' stroke='%23889' stroke-width='2' fill='none'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <h1>Onto<span>Live</span></h1>
+        <p class="tag">Every ontology tool needs a Java install. This one needs a browser tab.</p>
+      </div>
+      <nav class="tabs" role="tablist">
+        <button role="tab" data-tab="explore" aria-selected="true">Explore an ontology</button>
+        <button role="tab" data-tab="grow" aria-selected="false">Watch an LLM build one</button>
+      </nav>
+      <a class="repo" href="https://github.com/vishalmysore/ontolive" target="_blank" rel="noopener">GitHub</a>
+    </header>
+
+    <main>
+      <section id="explore" class="view">
+        <aside class="side">
+          <div class="card">
+            <h2>Ontology</h2>
+            <div class="row wrap">
+              <button id="load-pizza" class="primary">🍕 Pizza ontology</button>
+              <button id="load-family">Family sample</button>
+            </div>
+            <label class="drop" id="drop">
+              <input type="file" id="file" accept=".owl,.rdf,.xml,.ttl,.nt,.n3" hidden />
+              <strong>Drop a .owl or .ttl file</strong>
+              <span>or click to choose one. It is read in this tab and never uploaded.</span>
+            </label>
+            <form id="url-form" class="row">
+              <input id="url" type="url" placeholder="…or an ontology URL" aria-label="Ontology URL" />
+              <button type="submit">Load</button>
+            </form>
+            <p id="onto-status" class="muted small"></p>
+          </div>
+
+          <div class="card">
+            <h2>View</h2>
+            <label class="slider">
+              <span>Depth <b id="depth-val">2</b></span>
+              <input id="depth" type="range" min="0" max="8" value="2" />
+            </label>
+            <p class="muted small" id="depth-help">Levels below the top of the hierarchy.</p>
+            <label class="check"><input type="checkbox" id="opt-props" checked /> Object properties</label>
+            <label class="check"><input type="checkbox" id="opt-restr" /> Restrictions (some / only)</label>
+            <label class="check"><input type="checkbox" id="opt-attrs" checked /> Datatype properties</label>
+            <div class="row">
+              <label class="inline">Layout
+                <select id="direction">
+                  <option value="LR">Left → right</option>
+                  <option value="TB">Top → bottom</option>
+                </select>
+              </label>
+              <label class="inline">Max
+                <select id="max-nodes">
+                  <option>100</option>
+                  <option selected>250</option>
+                  <option>500</option>
+                  <option>1000</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Classes</h2>
+            <input id="search" type="search" placeholder="Find a class" aria-label="Find a class" />
+            <button id="to-top" class="link">↑ Top of the hierarchy</button>
+            <ul id="class-list" class="class-list"></ul>
+          </div>
+        </aside>
+
+        <section class="stage-wrap">
+          <div class="toolbar">
+            <div class="seg" role="radiogroup" aria-label="Renderer">
+              <button data-engine="pele" aria-pressed="true">Pele</button>
+              <button data-engine="mermaid" aria-pressed="false">Mermaid.js</button>
+            </div>
+            <button id="sweep" title="Animate the depth slider up and down">▶ Sweep depth</button>
+            <button id="race" title="Render the current view 20 times with each engine">⏱ Race</button>
+            <span class="spacer"></span>
+            <span id="hud" class="hud"></span>
+          </div>
+          <div id="race-out" class="race" hidden></div>
+          <div id="stage" class="stage pele-theme"></div>
+          <p id="stage-error" class="error small" hidden></p>
+          <details class="source">
+            <summary>Mermaid source <span class="muted small" id="src-size"></span></summary>
+            <div class="row"><button id="copy-src">Copy</button><button id="dl-svg">Download SVG</button></div>
+            <pre id="src"></pre>
+          </details>
+        </section>
+
+        <aside class="side details" id="details">
+          <div class="card"><p class="muted">Click a class in the diagram or the list to focus on it.</p></div>
+        </aside>
+      </section>
+
+      <section id="grow" class="view" hidden>
+        <aside class="side wide">
+          <div class="card">
+            <h2>Text</h2>
+            <select id="sample" aria-label="Sample paragraph"></select>
+            <textarea id="para" rows="9" aria-label="Paragraph to turn into an ontology"></textarea>
+          </div>
+          <div class="card">
+            <h2>Model</h2>
+            <p class="muted small">Runs on your GPU with WebLLM. The first load downloads the model (about 1 GB for 1.5B) and caches it.</p>
+            <select id="model" aria-label="Model"></select>
+            <div class="row">
+              <button id="run" class="primary">Load model and build</button>
+              <button id="stop" disabled>Stop</button>
+            </div>
+            <div class="progress" hidden><div id="progress-bar"></div></div>
+            <p id="llm-status" class="muted small"></p>
+          </div>
+          <div class="card">
+            <h2>Guardrails <span id="issue-count" class="pill"></span></h2>
+            <p class="muted small">Checked on every token: cycles, self-subclassing, near-duplicate classes, undeclared classes. Offending classes turn red.</p>
+            <ul id="issues" class="issues"></ul>
+          </div>
+        </aside>
+        <section class="stage-wrap">
+          <div class="toolbar">
+            <div class="seg" role="radiogroup" aria-label="Renderer">
+              <button data-engine2="pele" aria-pressed="true">Pele</button>
+              <button data-engine2="mermaid" aria-pressed="false">Mermaid.js</button>
+            </div>
+            <button id="to-explorer" disabled>Open in explorer</button>
+            <button id="dl-ttl" disabled>Download Turtle</button>
+            <span class="spacer"></span>
+            <span id="hud2" class="hud"></span>
+          </div>
+          <div id="stage2" class="stage pele-theme"></div>
+          <details class="source" open>
+            <summary>Model output, streaming</summary>
+            <pre id="raw"></pre>
+          </details>
+        </section>
+      </section>
+    </main>
+
+    <footer>
+      <p class="muted small">
+        Diagrams by <a href="https://pele.run" target="_blank" rel="noopener">Pele</a>, parsing by
+        <a href="https://github.com/rdfjs/N3.js" target="_blank" rel="noopener">N3.js</a> and the browser's XML parser, models by
+        <a href="https://github.com/mlc-ai/web-llm" target="_blank" rel="noopener">WebLLM</a>. The Pizza ontology is loaded from
+        <a href="https://github.com/owlcs/pizza-ontology" target="_blank" rel="noopener">owlcs/pizza-ontology</a> on GitHub. Timings on this page are measured in your browser.
+      </p>
+    </footer>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
